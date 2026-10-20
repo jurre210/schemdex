@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Search thousands of free Litematica schematics in one place.">
+<title>SchemDex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: sticky search bar over a wrapping card grid; filters as chips, results stream in as you scroll. */
+:root{
+  --bg:#e7e9e3;        /* smooth stone */
+  --panel:#f6f7f3;
+  --line:#c9ccc2;
+  --ink:#22261f;
+  --muted:#5f6659;
+  --accent:#b8261a;    /* redstone */
+  --accent-ink:#ffffff;
+  --chip:#dde0d7;
+  --ok:#3f7a2c;        /* emerald, used for file buttons */
+  --ok-bg:#e1eed9;
+  --display:"Pixelify Sans", "Courier New", monospace;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1c1e1a;--panel:#262923;--line:#3a3e35;--ink:#e9ebe3;--muted:#a3a998;
+  --accent:#e2493a;--accent-ink:#1c1e1a;--chip:#30342c;--ok:#8fcc72;--ok-bg:#2b3a24;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1c1e1a;--panel:#262923;--line:#3a3e35;--ink:#e9ebe3;--muted:#a3a998;
+  --accent:#e2493a;--accent-ink:#1c1e1a;--chip:#30342c;--ok:#8fcc72;--ok-bg:#2b3a24;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{padding-block:22px 6px}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.brand h1{font:700 34px/1 var(--display);margin:0;letter-spacing:.5px}
+.brand h1 b{color:var(--accent)}
+.brand p{margin:0;color:var(--muted);max-width:70ch}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#q{flex:1 1 320px;min-width:0;font:500 17px var(--body);padding:12px 14px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);border-radius:4px;outline:none}
+#q:focus{border-color:var(--accent)}
+select{font:500 14px var(--body);padding:11px 10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:4px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chip{font:500 13px var(--body);padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--chip);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip .n{font:400 11px var(--mono);opacity:.7;margin-left:4px}
+.status{font:400 12px var(--mono);color:var(--muted);margin-top:8px;display:flex;gap:16px;flex-wrap:wrap}
+.status b{color:var(--ink);font-weight:600}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;padding-block:16px 40px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.thumb{aspect-ratio:16/9;max-width:100%;background:var(--chip);display:block;width:100%;object-fit:cover}
+.ph{aspect-ratio:16/9;display:grid;place-items:center;background:
+  repeating-linear-gradient(0deg,transparent 0 19px,var(--line) 19px 20px),
+  repeating-linear-gradient(90deg,transparent 0 19px,var(--line) 19px 20px),var(--chip);
+  font:600 12px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.body{padding:11px 12px 12px;display:flex;flex-direction:column;gap:7px;flex:1;min-width:0}
+.title{font:600 15px/1.3 var(--body);margin:0;overflow-wrap:anywhere}
+.title a{color:inherit;text-decoration:none}
+.title a:hover{color:var(--accent);text-decoration:underline}
+.meta{font:400 12px var(--mono);color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.src{font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--ink);color:var(--bg)}
+.desc{font-size:13px;color:var(--muted);margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.tags{display:flex;gap:4px;flex-wrap:wrap}
+.tag{font:400 11px var(--mono);padding:1px 6px;border-radius:3px;background:var(--chip);color:var(--muted);cursor:pointer;border:0}
+.tag:hover{color:var(--accent)}
+.files{display:flex;flex-direction:column;gap:4px;margin-top:auto;padding-top:4px}
+.file{display:flex;justify-content:space-between;gap:8px;align-items:center;font:500 12px var(--mono);padding:6px 8px;border-radius:4px;background:var(--ok-bg);color:var(--ok);text-decoration:none;min-width:0}
+.file span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.file:hover{outline:2px solid var(--ok)}
+.more{font:400 11px var(--mono);color:var(--muted)}
+.empty{grid-column:1/-1;text-align:center;padding:60px 0;color:var(--muted)}
+.empty b{font:700 22px var(--display);color:var(--ink);display:block;margin-bottom:6px}
+#sentinel{height:1px}
+button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:520px){.brand h1{font-size:28px}.grid{grid-template-columns:1fr}}
+[hidden]{display:none!important}
+img{max-width:100%}
+</style>
+</head>
+<body>
+<header class="top wrap">
+  <div class="brand">
+    <h1>Schem<b>Dex</b></h1>
+    <p id="tagline">Every free Litematica schematic we can find, in one search. Click a green file to download the <code>.litematic</code>.</p>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="wrap">
+    <div class="row">
+      <input id="q" type="search" placeholder="Search farms, world eaters, bases, map art…" autocomplete="off" aria-label="Search schematics">
+      <select id="sort" aria-label="Sort">
+        <option value="rel">Best match</option>
+        <option value="dl">Most downloaded</option>
+        <option value="new">Newest</option>
+        <option value="az">A – Z</option>
+      </select>
+      <select id="ver" aria-label="Minecraft version"><option value="">Any version</option></select>
+    </div>
+    <div class="chips" id="sources"></div>
+    <div class="status" id="status">Loading index…</div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="grid" id="grid"></div>
+  <div id="sentinel"></div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+let ITEMS = [], THUMBS = {}, view = [], shown = 0;
+const PAGE = 48;
+const state = { q: "", sort: "rel", ver: "", src: new Set(), tag: "" };
+try { const s = JSON.parse(localStorage.getItem("schemdex") || "{}"); if (s.sort) state.sort = s.sort; } catch (e) {}
+
+const fmtN = n => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? (n/1e3).toFixed(1)+"k" : String(n);
+const fmtB = b => !b || b < 2 ? "" : b < 1024 ? b+" B" : b < 1048576 ? (b/1024).toFixed(0)+" KB" : (b/1048576).toFixed(1)+" MB";
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => s.toLowerCase().replace(/[-_]+/g, " ");
+
+function verKey(v){ const m = v.match(/^(\d+)\.(\d+)/); return m ? +m[1]*1000 + +m[2] : -1; }
+function majors(vs){ const s = new Set(); for (const v of vs){ const m = v.match(/^(\d+\.\d+)/); if (m) s.add(m[1]); } return s; }
+
+async function load(){
+  try {
+    const d = await (await fetch("data.json")).json();
+    ITEMS = d.items;
+    for (const it of ITEMS){
+      it._h = norm([it.t, it.a, it.d, it.tg.join(" "), it.src, it.f.map(f=>f.n).join(" ")].join(" "));
+      it._t = norm(it.t);
+      it._m = majors(it.v);
+      it._pop = it.dl || (it.st || 0) * 20;
+    }
+    $("#tagline").innerHTML = `Every free Litematica schematic we can find, in one search: <b>${ITEMS.length.toLocaleString()}</b> builds from MineMev, RedenMC, Choculaterie and GitHub. Click a green file to download the <code>.litematic</code>. Index built ${esc(d.meta.built)}.`;
+    buildFilters();
+    run();
+  } catch (e) {
+    $("#status").textContent = "Could not load the schematic index (data.json). Reload the page to try again.";
+  }
+  try { THUMBS = await (await fetch("thumbs.json")).json(); paintThumbs(); } catch (e) {}
+}
+
+function buildFilters(){
+  const counts = {};
+  for (const it of ITEMS) counts[it.src] = (counts[it.src] || 0) + 1;
+  $("#sources").innerHTML = Object.entries(counts).sort((a,b)=>b[1]-a[1])
+    .map(([s,n]) => `<button class="chip" data-src="${esc(s)}" aria-pressed="false">${esc(s)}<span class="n">${n.toLocaleString()}</span></button>`).join("")
+    + `<button class="chip" id="tagchip" hidden aria-pressed="true"></button>`;
+  const vs = new Set(); for (const it of ITEMS) for (const m of it._m) vs.add(m);
+  $("#ver").innerHTML += [...vs].sort((a,b)=>verKey(b)-verKey(a)).map(v=>`<option value="${v}">${v}.x</option>`).join("");
+  $("#sort").value = state.sort;
+}
+
+function score(it, terms){
+  let s = 0;
+  for (const t of terms){
+    if (!it._h.includes(t)) return -1;
+    if (it._t.includes(t)) s += it._t.startsWith(t) ? 6 : 4;
+    else s += 1;
+  }
+  return s + Math.log10(1 + it._pop) * .6;
+}
+
+function run(){
+  const terms = norm(state.q).split(/\s+/).filter(Boolean);
+  let list = [];
+  for (const it of ITEMS){
+    if (state.src.size && !state.src.has(it.src)) continue;
+    if (state.ver && !it._m.has(state.ver)) continue;
+    if (state.tag && !it.tg.includes(state.tag)) continue;
+    const sc = terms.length ? score(it, terms) : Math.log10(1 + it._pop);
+    if (sc < 0) continue;
+    it._s = sc; list.push(it);
+  }
+  const by = {
+    rel: (a,b) => b._s - a._s,
+    dl: (a,b) => b._pop - a._pop,
+    new: (a,b) => (b.dt||"").localeCompare(a.dt||""),
+    az: (a,b) => a.t.localeCompare(b.t),
+  }[state.sort];
+  list.sort(by);
+  view = list; shown = 0;
+  $("#grid").innerHTML = "";
+  more();
+  const files = list.reduce((n,it)=>n+it.f.length,0);
+  $("#status").innerHTML = `<span><b>${list.length.toLocaleString()}</b> schematics</span><span><b>${files.toLocaleString()}</b> files</span>`;
+  if (!list.length) $("#grid").innerHTML = `<div class="empty"><b>Nothing matches</b>Try fewer words, another version, or clear the source filters.</div>`;
+}
+
+function card(it){
+  const img = THUMBS[it.id];
+  const pic = img ? `<img class="thumb" loading="lazy" alt="" src="${img}">`
+                  : `<div class="ph" data-id="${esc(it.id)}">${it.src === "GitHub" ? esc(it.repo) : "no preview"}</div>`;
+  const files = it.f.slice(0,3).map(f => `<a class="file" href="${esc(f.u)}" target="_blank" rel="noopener"><span>⤓ ${esc(f.n)}</span><span>${fmtB(f.s)}</span></a>`).join("")
+    + (it.f.length > 3 ? `<a class="more" href="${esc(it.url)}" target="_blank" rel="noopener">+${it.f.length-3} more files on the source page</a>` : "")
+    + (!it.f.length ? `<a class="file" href="${esc(it.url)}" target="_blank" rel="noopener"><span>Open on ${esc(it.src)}</span><span>↗</span></a>` : "");
+  const vers = it.v.length ? (()=>{ const m=[...it._m].sort((a,b)=>verKey(b)-verKey(a)); return m.length>2 ? `${m[m.length-1]}–${m[0]}` : m.join(", "); })() : "";
+  const pop = it.dl ? `${fmtN(it.dl)} downloads` : it.st ? `★ ${fmtN(it.st)}` : "";
+  return `<article class="card">${pic}<div class="body">
+    <h2 class="title"><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.t)}</a></h2>
+    <div class="meta"><span class="src">${esc(it.src)}</span>${it.a?`<span>${esc(it.a)}</span>`:""}${pop?`<span>${pop}</span>`:""}${vers?`<span>MC ${esc(vers)}</span>`:""}</div>
+    ${it.d?`<p class="desc">${esc(it.d)}</p>`:""}
+    ${it.tg.length?`<div class="tags">${it.tg.slice(0,5).map(t=>`<button class="tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join("")}</div>`:""}
+    <div class="files">${files}</div></div></article>`;
+}
+
+function more(){
+  if (shown >= view.length) return;
+  $("#grid").insertAdjacentHTML("beforeend", view.slice(shown, shown+PAGE).map(card).join(""));
+  shown += PAGE;
+}
+function paintThumbs(){
+  document.querySelectorAll(".ph[data-id]").forEach(ph => {
+    const src = THUMBS[ph.dataset.id]; if (!src) return;
+    const img = new Image(); img.className = "thumb"; img.alt = ""; img.src = src; ph.replaceWith(img);
+  });
+}
+
+new IntersectionObserver(es => { if (es[0].isIntersecting) more(); }, { rootMargin: "800px" }).observe($("#sentinel"));
+
+let tmr; $("#q").addEventListener("input", e => { clearTimeout(tmr); tmr = setTimeout(() => { state.q = e.target.value; run(); }, 120); });
+$("#sort").addEventListener("change", e => { state.sort = e.target.value; try { localStorage.setItem("schemdex", JSON.stringify({sort: state.sort})); } catch (x) {} run(); });
+$("#ver").addEventListener("change", e => { state.ver = e.target.value; run(); });
+$("#sources").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  if (b.id === "tagchip"){ state.tag = ""; b.hidden = true; return run(); }
+  const s = b.dataset.src; state.src.has(s) ? state.src.delete(s) : state.src.add(s);
+  b.setAttribute("aria-pressed", state.src.has(s)); run();
+});
+$("#grid").addEventListener("click", e => {
+  const t = e.target.closest(".tag"); if (!t) return;
+  state.tag = t.dataset.tag; const c = $("#tagchip"); c.hidden = false; c.textContent = `#${state.tag}  ✕`;
+  window.scrollTo({top: 0}); run();
+});
+load();
+</script>
+</body>
+</html>
